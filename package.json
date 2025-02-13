@@ -19,7 +19,6 @@
     "typescript": "^5.7.3"
   },
   "dependencies": {
-    "@chainsafe/blst": "^2.2.0",
     "lodash": "^4.17.21",
     "viem": "^2.23.2"
   }
