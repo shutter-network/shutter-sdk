@@ -107,7 +107,6 @@ async function computeC2(sigmaHex: string, r: bigint, identity: P1, eonKey: P2):
     const p: PT = new blst.PT(identity, eonKey);
     const preimage = await GTExp(p, r);
     const key = hash2(preimage);
-    console.log("sigmaHex length", hexToBytes(sigmaHex as `0x${string}`).length, "key", key.length)
     const result = xorBlocks(hexToBytes(sigmaHex as `0x${string}`), key);
     return result;
 }
