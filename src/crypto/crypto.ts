@@ -91,6 +91,40 @@ export function encodeEncryptedMessage(encryptedMessage: any): `0x${string}` {
     return bytesToHex(bytes);
 }
 
+export function decodeEncryptedMessage(encryptedMessage: any) {
+    const bytes = hexToBytes(encryptedMessage);
+    if (bytes[0] !== 0x3) {
+        throw "Invalid version";
+    }
+    const c1 = new blst.P2_Affine(bytes.slice(1, 96 + 1));
+    const c2 = bytes.slice(96 + 1, 96 + 1 + 32);
+    const c3 = bytes.slice(96 + 1 + 32);
+
+    return {
+        VersionId: 0x3,
+        c1: c1,
+        c2: c2,
+        c3: c3,
+    };
+}
+
+export async function decrypt(encryptedMessageHex: any, epochSecretKeyHex: any) {
+    const decodedMessage = decodeEncryptedMessage(encryptedMessageHex);
+    const p = new blst.PT(decodedMessage.c1, new blst.P1_Affine(hexToBytes(epochSecretKeyHex)));
+    const key = hash2(p);
+    const sigma = xorBlocks(decodedMessage.c2, key);
+    const blockCount = decodedMessage.c3.length / 32;
+    const decryptedBlocks = new Uint8Array(decodedMessage.c3.length);
+    const keys = computeBlockKeys(sigma, blockCount);
+    for (let i = 0; i < blockCount; i++) {
+        const block = decodedMessage.c3.slice(i * 32, (i + 1) * 32);
+        const decryptedBlock = xorBlocks(block, keys[i]);
+        decryptedBlocks.set(decryptedBlock, i * 32);
+    }
+    return bytesToHex(unpad(decryptedBlocks));
+}
+
+
 //======================================
 function computeR(sigmaHex: string, msgHex: string): bigint {
     const preimage = sigmaHex + msgHex;
@@ -187,6 +221,14 @@ function padAndSplit(bytes: Uint8Array): Uint8Array[] {
         result.push(padded.slice(i, i + blockSize));
     }
     return result;
+}
+
+function unpad(bytes: Uint8Array): Uint8Array {
+    const paddingLength = bytes.at(-1);
+    if (paddingLength == undefined || paddingLength == 0 || paddingLength > 32 || paddingLength >= bytes.length) {
+        throw `Invalid padding length: ${paddingLength}`;
+    }
+    return bytes.slice(0, bytes.length - paddingLength);
 }
 
 async function GTExp(x: PT, exp: bigint): Promise<PT> {
