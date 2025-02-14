@@ -1,6 +1,6 @@
 import { hexToBytes, keccak256, bytesToBigInt, bytesToHex, numberToBytes } from 'viem';
 import pkg from 'lodash';
-import * as blst from './blst/blst';
+import blst from './blst/blst';
 const { zip } = pkg;
 import { Blst, P1, P2, PT } from './blst/types';
 
@@ -11,6 +11,34 @@ const blsSubgroupOrderBytes = [
 
 const blsSubgroupOrder = bytesToBigInt(Uint8Array.from(blsSubgroupOrderBytes));
 
+async function ensureBlstInitialized(): Promise<void> {
+    return new Promise((resolve) => {
+        if (blst.runtimeInitialized) {
+            console.log("blst.runtimeInitialized")
+            resolve();
+        } else {
+            console.log("Waiting for BLST runtime to initialize...");
+            blst.onRuntimeInitialized = () => {
+                console.log("BLST runtime initialized.");
+                resolve();
+            };
+        }
+    });
+}
+
+export async function encryptData(
+    msgHex: `0x${string}`,
+    identityPreimageHex: `0x${string}`,
+    eonKeyHex: `0x${string}`,
+    sigmaHex: `0x${string}`,
+) {
+    await ensureBlstInitialized(); // Ensure WASM is ready
+    const identity = await computeIdentityP1(identityPreimageHex);
+    const eonKey = await computeEonKeyP2(eonKeyHex);
+    const encryptedMessage = await encrypt(msgHex, identity, eonKey, sigmaHex);
+    const encodedTx = encodeEncryptedMessage(encryptedMessage);
+    return encodedTx;
+}
 
 export async function computeIdentityP1(preimage: `0x${string}`): Promise<P1> {
     const preimageBytes = hexToBytes(('0x1' + preimage.slice(2)) as `0x${string}`);
@@ -19,7 +47,6 @@ export async function computeIdentityP1(preimage: `0x${string}`): Promise<P1> {
         'SHUTTER_V01_BLS12381G1_XMD:SHA-256_SSWU_RO_',
         null,
     );
-
     return identity;
 }
 
@@ -45,6 +72,25 @@ async function encrypt(msgHex: `0x${string}`, identity: P1, eonKey: P2, sigmaHex
     };
 }
 
+export function encodeEncryptedMessage(encryptedMessage: any): `0x${string}` {
+    const c1Length = 96;
+    const c2Length = 32;
+    const c3Length = encryptedMessage.c3.length * 32;
+
+    const totalLength = 1 + c1Length + c2Length + c3Length;
+    const bytes = new Uint8Array(totalLength);
+
+    bytes[0] = encryptedMessage.VersionId;
+    bytes.set(encryptedMessage.c1, 1);
+    bytes.set(encryptedMessage.c2, 1 + c1Length);
+    encryptedMessage.c3.forEach((block: ArrayLike<number>, i: number) => {
+        const offset = 1 + c1Length + c2Length + 32 * i;
+        bytes.set(block, offset);
+    });
+
+    return bytesToHex(bytes);
+}
+
 //======================================
 function computeR(sigmaHex: string, msgHex: string): bigint {
     const preimage = sigmaHex + msgHex;
@@ -61,6 +107,7 @@ async function computeC2(sigmaHex: string, r: bigint, identity: P1, eonKey: P2):
     const p: PT = new blst.PT(identity, eonKey);
     const preimage = await GTExp(p, r);
     const key = hash2(preimage);
+    console.log("sigmaHex length", hexToBytes(sigmaHex as `0x${string}`).length, "key", key.length)
     const result = xorBlocks(hexToBytes(sigmaHex as `0x${string}`), key);
     return result;
 }
