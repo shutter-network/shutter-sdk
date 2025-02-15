@@ -2,10 +2,16 @@
   "name": "shutter-sdk",
   "version": "0.0.1",
   "description": "TypeScript SDK for interacting with the Shutter crypto library, providing encryption, decryption, and utilities.",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    "import": "./dist/index.mjs",
+    "require": "./dist/index.js"
+  },
   "scripts": {
     "test": "jest",
-    "build": "tsup src/index.ts"
+    "build": "tsup && cp src/crypto/blst/blst.wasm dist/blst.wasm"
   },
   "repository": {
     "type": "git",
@@ -13,6 +19,7 @@
   },
   "author": "shutter-network",
   "license": "ISC",
+  "files": ["dist"],
   "devDependencies": {
     "@types/jest": "^29.5.14",
     "@types/lodash": "^4.17.15",

@@ -11,33 +11,17 @@ const blsSubgroupOrderBytes = [
 
 const blsSubgroupOrder = bytesToBigInt(Uint8Array.from(blsSubgroupOrderBytes));
 
-async function ensureBlstInitialized(): Promise<void> {
-    return new Promise((resolve) => {
-        if (blst.runtimeInitialized) {
-            console.log("blst.runtimeInitialized")
-            resolve();
-        } else {
-            console.log("Waiting for BLST runtime to initialize...");
-            blst.onRuntimeInitialized = () => {
-                console.log("BLST runtime initialized.");
-                resolve();
-            };
-        }
-    });
-}
-
 export async function encryptData(
     msgHex: `0x${string}`,
     identityPreimageHex: `0x${string}`,
     eonKeyHex: `0x${string}`,
     sigmaHex: `0x${string}`,
 ) {
-    await ensureBlstInitialized(); // Ensure WASM is ready
     const identity = await computeIdentityP1(identityPreimageHex);
     const eonKey = await computeEonKeyP2(eonKeyHex);
     const encryptedMessage = await encrypt(msgHex, identity, eonKey, sigmaHex);
-    const encodedTx = encodeEncryptedMessage(encryptedMessage);
-    return encodedTx;
+    const encodedData = encodeEncryptedMessage(encryptedMessage);
+    return encodedData;
 }
 
 export async function computeIdentityP1(preimage: `0x${string}`): Promise<P1> {
