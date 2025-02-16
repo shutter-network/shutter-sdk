@@ -17,6 +17,7 @@ export async function encryptData(
     eonKeyHex: `0x${string}`,
     sigmaHex: `0x${string}`,
 ) {
+    await ensureBlstInitialized();
     const identity = await computeIdentityP1(identityPreimageHex);
     const eonKey = await computeEonKeyP2(eonKeyHex);
     const encryptedMessage = await encrypt(msgHex, identity, eonKey, sigmaHex);
@@ -93,6 +94,7 @@ export function decodeEncryptedMessage(encryptedMessage: any) {
 }
 
 export async function decrypt(encryptedMessageHex: any, epochSecretKeyHex: any) {
+    await ensureBlstInitialized()
     const decodedMessage = decodeEncryptedMessage(encryptedMessageHex);
     const p = new blst.PT(decodedMessage.c1, new blst.P1_Affine(hexToBytes(epochSecretKeyHex)));
     const key = hash2(p);
@@ -108,6 +110,20 @@ export async function decrypt(encryptedMessageHex: any, epochSecretKeyHex: any) 
     return bytesToHex(unpad(decryptedBlocks));
 }
 
+async function ensureBlstInitialized(): Promise<void> {
+    return new Promise((resolve) => {
+        if (blst.calledRun) {
+            console.log("BLST already initialized");
+            resolve();
+        } else {
+            console.log("Waiting for BLST runtime to initialize...");
+            blst.onRuntimeInitialized = () => {
+                console.log("BLST runtime initialized.");
+                resolve();
+            };
+        }
+    });
+}
 
 //======================================
 function computeR(sigmaHex: string, msgHex: string): bigint {
