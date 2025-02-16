@@ -1,8 +1,14 @@
 import { hexToBytes, keccak256, bytesToBigInt, bytesToHex, numberToBytes } from 'viem';
 import pkg from 'lodash';
-import blst from './blst/blst';
 const { zip } = pkg;
 import { Blst, P1, P2, PT } from './blst/types';
+import { getBlst } from './get-blst';
+
+declare global {
+    interface Window {
+        blst: any;
+    }
+}
 
 const blsSubgroupOrderBytes = [
     0x73, 0xed, 0xa7, 0x53, 0x29, 0x9d, 0x7d, 0x48, 0x33, 0x39, 0xd8, 0x08, 0x09, 0xa1, 0xd8, 0x05,
@@ -26,6 +32,7 @@ export async function encryptData(
 }
 
 export async function computeIdentityP1(preimage: `0x${string}`): Promise<P1> {
+    const blst = await getBlst()
     const preimageBytes = hexToBytes(('0x1' + preimage.slice(2)) as `0x${string}`);
     const identity = new blst.P1().hash_to(
         preimageBytes,
@@ -36,13 +43,14 @@ export async function computeIdentityP1(preimage: `0x${string}`): Promise<P1> {
 }
 
 async function computeEonKeyP2(eonKeyHex: `0x${string}`): Promise<P2> {
+    const blst = await getBlst()
     const eonKey = new blst.P2(hexToBytes(eonKeyHex));
     return eonKey;
 }
 
 async function encrypt(msgHex: `0x${string}`, identity: P1, eonKey: P2, sigmaHex: `0x${string}`) {
     const r = computeR(sigmaHex.slice(2), msgHex.slice(2));
-    const c1 = computeC1(r);
+    const c1 = await computeC1(r);
     const c2 = await computeC2(sigmaHex, r, identity, eonKey);
     const c3 = computeC3(
         padAndSplit(hexToBytes(msgHex as `0x${string}`)),
@@ -76,7 +84,8 @@ export function encodeEncryptedMessage(encryptedMessage: any): `0x${string}` {
     return bytesToHex(bytes);
 }
 
-export function decodeEncryptedMessage(encryptedMessage: any) {
+export async function decodeEncryptedMessage(encryptedMessage: any) {
+    const blst = await getBlst()
     const bytes = hexToBytes(encryptedMessage);
     if (bytes[0] !== 0x3) {
         throw "Invalid version";
@@ -94,8 +103,9 @@ export function decodeEncryptedMessage(encryptedMessage: any) {
 }
 
 export async function decrypt(encryptedMessageHex: any, epochSecretKeyHex: any) {
+    const blst = await getBlst()
     await ensureBlstInitialized()
-    const decodedMessage = decodeEncryptedMessage(encryptedMessageHex);
+    const decodedMessage = await decodeEncryptedMessage(encryptedMessageHex);
     const p = new blst.PT(decodedMessage.c1, new blst.P1_Affine(hexToBytes(epochSecretKeyHex)));
     const key = hash2(p);
     const sigma = xorBlocks(decodedMessage.c2, key);
@@ -111,6 +121,7 @@ export async function decrypt(encryptedMessageHex: any, epochSecretKeyHex: any) 
 }
 
 async function ensureBlstInitialized(): Promise<void> {
+    const blst = await getBlst()
     return new Promise((resolve) => {
         if (blst.calledRun) {
             console.log("BLST already initialized");
@@ -131,13 +142,15 @@ function computeR(sigmaHex: string, msgHex: string): bigint {
     return hash3(preimage);
 }
 
-function computeC1(r: bigint) {
+async function computeC1(r: bigint) {
+    const blst = await getBlst()
     const scalar = new blst.Scalar().from_bendian(numberToBytes(r)).to_lendian();
     const c1 = blst.P2.generator().mult(scalar).compress();
     return c1;
 }
 
 async function computeC2(sigmaHex: string, r: bigint, identity: P1, eonKey: P2): Promise<any> {
+    const blst = await getBlst()
     const p: PT = new blst.PT(identity, eonKey);
     const preimage = await GTExp(p, r);
     const key = hash2(preimage);
@@ -232,6 +245,7 @@ function unpad(bytes: Uint8Array): Uint8Array {
 }
 
 async function GTExp(x: PT, exp: bigint): Promise<PT> {
+    const blst = await getBlst()
     const a: PT = x;
     const acc: PT = blst.PT.one();
 
