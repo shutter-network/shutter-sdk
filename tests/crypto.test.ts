@@ -1,7 +1,8 @@
 import { Hex, stringToHex } from "viem";
 import { decrypt, encryptData } from "../src/crypto/crypto"
 import testData from "./test-data.json"
-describe("Crypto: encrypt functions", () => {
+
+describe("Crypto functions", () => {
     it("should encrypt correctly", async () => {
         for (const test of testData) {
             if (test.name.includes("encryption")) {
