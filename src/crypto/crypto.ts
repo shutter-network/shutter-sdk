@@ -238,7 +238,7 @@ function padAndSplit(bytes: Uint8Array): Uint8Array[] {
 
 function unpad(bytes: Uint8Array): Uint8Array {
     const paddingLength = bytes.at(-1);
-    if (paddingLength == undefined || paddingLength == 0 || paddingLength > 32 || paddingLength >= bytes.length) {
+    if (paddingLength == undefined || paddingLength == 0 || paddingLength > 32 || paddingLength > bytes.length) {
         throw `Invalid padding length: ${paddingLength}`;
     }
     return bytes.slice(0, bytes.length - paddingLength);
