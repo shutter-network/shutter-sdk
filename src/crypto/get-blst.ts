@@ -6,7 +6,7 @@ if (isBrowser) {
     getBlst = async () => {
         if (!window.blst) {
             const script = document.createElement('script');
-            script.src = '/node_modules/shutter-sdk/dist/blst.js';
+            script.src = '/node_modules/@shutter-network/shutter-sdk/dist/blst.js';
 
             await new Promise((resolve, reject) => {
                 script.onload = resolve;
