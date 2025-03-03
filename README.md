@@ -21,7 +21,7 @@ const identityPreimageHex = "0x8c4e6301fba207fb2375d2fda9f2ebe1142d07d1954d871e2
 const sigmaHex = "0x312c10b186086d502ba683cffc2ae650d53b508904b3c430df8e7d5aa336c0f5";
 
 // Call encryptData function
-const encryptedData = await encryptData(message, eonPublicKey, identityPreimageHex, sigma);
+const encryptedData = await encryptData(msgHex, eonKeyHex, identityPreimageHex, sigmaHex);
 console.log("Encryption successful:", encryptedData);
 ``` 
 
