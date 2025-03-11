@@ -31,10 +31,10 @@ console.log("Encryption successful:", encryptedData);
 import { decrypt } from "@shutter-network/shutter-sdk";
 
 const encryptedData = "0x03a975256b0098bc981da31762a73e50a07c79f5bf3e17c44121b9567033cedaf9e203f0300b709dec3458a88baa18963c0e503f437bff7adb31231941585ea1bb14e8ce98c7dc1471666e4b07c592cbeda30acc22f23dcb84d58d41848e72af0804d348d5c5cb65a52dc3b697ea4caae9679b97e395a30807f9657ebc85bbf2fcadaa9a458a86bffb78dde89f7626a26eb84f4781d3b6759c06629ea321a8b757"
-const epochSecretKeyHex = "0x81cfcfceebfc69b3cb3fe074f4b3751e7844f6d62b3040563ccb3a2430110f259d109519c73682735f4c02651492c740"
+const decryptionKey = "0x81cfcfceebfc69b3cb3fe074f4b3751e7844f6d62b3040563ccb3a2430110f259d109519c73682735f4c02651492c740"
 
 // Call decrypt function
-const decryptedData = await decrypt(encryptedData, epochSecretKeyHex);
+const decryptedData = await decrypt(encryptedData, decryptionKey);
 console.log("Decryption successful:", decryptedData);
 ```
 
